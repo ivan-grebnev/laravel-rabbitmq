@@ -19,18 +19,18 @@ class RabbitmqJob extends Job implements JobContract
         RabbitmqQueue $rabbitmq,
         AMQPMessage $message,
         string $connectionName,
-        string $stream
+        string $task
     ) {
         $this->container = $container;
         $this->rabbitmq = $rabbitmq;
         $this->message = $message;
         $this->connectionName = $connectionName;
-        $this->queue = $stream;
+        $this->queue = $task;
     }
 
     public function getJobId(): string
     {
-        return $this->payload()['uuid'].'|'.$this->attempts();
+        return $this->uuid().'#'.$this->attempts();
     }
 
     public function getRawBody(): string
@@ -40,24 +40,19 @@ class RabbitmqJob extends Job implements JobContract
 
     public function attempts()
     {
-        return Arr::get($this->headers(), 'x-death.0.count', 0) + 1;
-    }
+        $ttlHeaders = Arr::get($this->headers(), 'x-death', []);
 
-    public function fire()
-    {
-        parent::fire();
+        $retryHeaders = collect($ttlHeaders)
+            ->filter(fn($ar) => is_numeric(strpos($ar['queue'], '.retry.')))
+            ->first();
 
-        $this->delete();
+        return Arr::get($retryHeaders, 'count', 0) + 1;
     }
 
     public function delete()
     {
-        if ($this->hasFailed()) {
-            $this->rabbitmq->nack($this->queue, $this->message->getDeliveryTag());
-        } else {
-            $this->rabbitmq->ack($this->queue, $this->message->getDeliveryTag());
-        }
-
+        $action = $this->hasFailed() ? 'nack' : 'ack';
+        $this->rabbitmq->$action($this->queue, $this->message->getDeliveryTag());
         parent::delete();
     }
 

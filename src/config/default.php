@@ -16,31 +16,34 @@ return [
         ],
         'options' => []
     ],
-    'job' => RabbitmqJob::class,
-    'queue' => env('RABBITMQ_QUEUE', 'default'), // default stream
-    'streams' => [
+    'tasks' => [
         'default' => [
             'queue' => 'default'
         ],
-    ],
-    'options' => [
-        'queue' => [
-            'passive' => false, // don't check if a queue with the same name exists
-            'durable' => true, // the queue will survive server restarts
-            'exclusive' => false, // the queue might be accessed by other channels
-            'auto_delete' => false, //the queue will not be deleted once the channel is closed
-            'nowait' => false,
-        ],
-        'exchange' => [
-            'type' => 'direct', // fanout / direct / topic / headers
-            'passive' => false, // don't check if an exchange with the same name exists
-            'durable' => true,  // the exchange will survive server restarts
-            'auto_delete' => false, //the exchange will not be deleted once the channel is closed.
-        ],
-        'consume' => [
-            'no_ack' => false, // if set to true, automatic acknowledgement mode will be used
-            'auto_reconnect' => true, // will be reconnecting on message consuming fail
+        'delayed' => [
+            'queue' => '%queue%',
+            'queue_arguments' => [
+                'x-dead-letter-exchange' => '%exchange%',
+                'x-dead-letter-routing-key' => '%routing_key%',
+                'x-message-ttl' => '%ttl%',
+                'x-expires' => '%expires%',
+            ]
         ]
+    ],
+    'defaults' => [
+        'job' => RabbitmqJob::class,
+        'queue_passive' => false, // don't check if a queue with the same name exists
+        'queue_durable' => true, // the queue will survive server restarts
+        'queue_exclusive' => false, // the queue might be accessed by other channels
+        'queue_auto_delete' => false, //the queue will not be deleted once the channel is closed
+        'queue_nowait' => false,
+        'queue_arguments' => [],
+        'exchange_type' => 'direct', // fanout / direct / topic / headers
+        'exchange_passive' => false, // don't check if an exchange with the same name exists
+        'exchange_durable' => true,  // the exchange will survive server restarts
+        'exchange_auto_delete' => false, //the exchange will not be deleted once the channel is closed.
+        'consume_no_ack' => false, // if set to true, automatic acknowledgement mode will be used
+        'consume_auto_reconnect' => true, // will be reconnecting on message consuming fail
     ],
 ];
 
