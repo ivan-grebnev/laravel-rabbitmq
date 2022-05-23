@@ -11,7 +11,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitmqJob extends Job implements JobContract
 {
-    private RabbitmqQueue $rabbitmq;
+    protected RabbitmqQueue $rabbitmq;
     private AMQPMessage $message;
 
     public function __construct(
@@ -66,8 +66,14 @@ class RabbitmqJob extends Job implements JobContract
         }
     }
 
-    public function headers(): array
+    /**
+     * @param string|null $key
+     *
+     * @return array|\ArrayAccess|mixed
+     */
+    public function headers(?string $key = null)
     {
-        return optional(Arr::get($this->message->get_properties(), 'application_headers'))->getNativeData() ?? [];
+        $headers = optional(Arr::get($this->message->get_properties(), 'application_headers'))->getNativeData() ?? [];
+        return Arr::get($headers, $key);
     }
 }

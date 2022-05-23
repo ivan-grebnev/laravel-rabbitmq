@@ -31,7 +31,7 @@ return [
         ]
     ],
     'defaults' => [
-        'job' => RabbitmqJob::class,
+        'worker_job' => RabbitmqJob::class,
         'queue_passive' => false, // don't check if a queue with the same name exists
         'queue_durable' => true, // the queue will survive server restarts
         'queue_exclusive' => false, // the queue might be accessed by other channels

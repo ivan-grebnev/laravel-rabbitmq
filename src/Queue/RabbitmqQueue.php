@@ -55,7 +55,7 @@ class RabbitmqQueue extends Queue implements QueueContract
         return is_numeric($newValue) ? (int) $newValue : $newValue;
     }
 
-    private function taskConfig(string $task, string $key, array $map = [])
+    public function taskConfig(string $task, string $key, array $map = [])
     {
         $value = $this->config(sprintf('tasks.%s.%s', $task, $key), sprintf('defaults.%s', $key));
 
@@ -119,9 +119,9 @@ class RabbitmqQueue extends Queue implements QueueContract
      * @return mixed|void
      * @throws \Throwable
      */
-    public function pushRaw($message, $queue = null, array $options = [])
+    public function pushRaw($message, $task = null, array $options = [])
     {
-        [$exchange, $queue] = $this->initTask(($task = $queue), true, $options);
+        [$exchange, $queue] = $this->initTask($task, true, $options);
 
         $this->channel->basic_publish(
             $message,
@@ -190,7 +190,7 @@ class RabbitmqQueue extends Queue implements QueueContract
                 )
             ) {
                 /** @var $jobClass RabbitmqJob */
-                $jobClass = $this->taskConfig($task, 'job');
+                $jobClass = $this->taskConfig($task, 'worker_job');
 
                 return new $jobClass(
                     $this->container,
@@ -234,7 +234,7 @@ class RabbitmqQueue extends Queue implements QueueContract
             }
         }
         if (!array_key_exists('message_id', $properties)) {
-            $properties['message_id'] = Arr::get($body, 'uuid', Str::uuid());
+            $properties['message_id'] = Arr::get($body, 'uuid', Str::uuid()->toString());
         }
 
         $headers = [];
