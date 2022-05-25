@@ -70,13 +70,13 @@ class RabbitmqQueue extends Queue implements QueueContract
         /** @var $connectionClass AbstractConnection */
         $connectionClass = $this->config('connection.class');
 
-        register_shutdown_function(fn() => $this->disconnect());
-
         /** @var $connection \PhpAmqpLib\Connection\AbstractConnection */
         $this->connection = $connectionClass::create_connection(
             [$this->config('connection.credentials')],
             $this->config('connection.options')
         );
+
+        register_shutdown_function(fn() => $this->disconnect());
 
         $this->channel = $this->connection->channel();
     }
@@ -108,26 +108,31 @@ class RabbitmqQueue extends Queue implements QueueContract
 
     public function push($job, $data = '', $task = null)
     {
-        $this->pushRaw($this->createMessage($this->createPayload($job, $task, $data)), $task);
+        $this->pushRaw($this->createMessage($this->createPayload($job, $task, $data)), $task, [], $job);
     }
 
     /**
      * @param AMQPMessage $message
      * @param string      $queue
-     * @param array       $options
+     * @param array       $map
      *
      * @return mixed|void
      * @throws \Throwable
      */
-    public function pushRaw($message, $task = null, array $options = [])
+    public function pushRaw($message, $task = null, array $map = [], $job = null)
     {
-        [$exchange, $queue] = $this->initTask($task, true, $options);
+        [$exchange, $queue] = $this->initTask($task, true, $map);
 
+        $routingKey = $this->taskConfig($task, 'routing_key');
         $this->channel->basic_publish(
             $message,
             $queue ? '' : $exchange,
-            $queue ?? $this->taskConfig($task, 'routing_key')
+            $queue ?? $routingKey
         );
+
+        if (is_object($job) && method_exists($job, 'afterPush')) {
+            $job->afterPush($message, $exchange, $queue, $routingKey);
+        }
     }
 
     /**
@@ -152,7 +157,8 @@ class RabbitmqQueue extends Queue implements QueueContract
                 'queue' => ($exchange ?? $queue).'.delay.'.$ttl,
                 'exchange' => $exchange ?? '',
                 'routing_key' => $exchange ? $this->taskConfig($task, 'routing_key') : $queue,
-            ]
+            ],
+            $job
         );
     }
 
@@ -234,7 +240,7 @@ class RabbitmqQueue extends Queue implements QueueContract
             }
         }
         if (!array_key_exists('message_id', $properties)) {
-            $properties['message_id'] = Arr::get($body, 'uuid', Str::uuid()->toString());
+            $properties['message_id'] = Arr::get($body, 'uuid', (string) Str::uuid());
         }
 
         $headers = [];
