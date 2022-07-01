@@ -83,10 +83,13 @@ class RabbitmqQueue extends Queue implements QueueContract
 
     private function disconnect(): void
     {
-        if (is_a($this->channel, AbstractChannel::class)) {
-            $this->channel->close();
+        if (isset($this->channel) && is_a($this->channel, AbstractChannel::class)) {
+            try {
+                $this->channel->close();
+            } catch (\Exception $e) {
+            }
         }
-        if (is_a($this->connection, AbstractConnection::class)) {
+        if (isset($this->connection) && is_a($this->connection, AbstractConnection::class)) {
             try {
                 $this->connection->close();
             } catch (\Exception $e) {
