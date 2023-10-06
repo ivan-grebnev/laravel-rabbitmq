@@ -127,6 +127,11 @@ class RabbitmqQueue extends Queue implements QueueContract
         [$exchange, $queue] = $this->initTask($task, true, $map);
 
         $routingKey = $this->taskConfig($task, 'routing_key');
+        if (is_object($job) && method_exists($job, 'beforePush')) {
+            if (false === $job->beforePush($message, $exchange, $queue, $routingKey)) {
+                return;
+            }
+        }
         $this->channel->basic_publish(
             $message,
             $queue ? '' : $exchange,
