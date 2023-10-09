@@ -125,15 +125,16 @@ class RabbitmqQueue extends Queue implements QueueContract
     public function pushRaw($message, $task = null, array $map = [], $job = null)
     {
         [$exchange, $queue] = $this->initTask($task, true, $map);
+        $taskConfig = Arr::get($this->config, sprintf('tasks.%s', $task));
 
         if (is_object($job) && method_exists($job, 'routingKey')) {
-            $routingKey = $job->routingKey();
+            $routingKey = $job->routingKey($taskConfig);
         } else {
             $routingKey = $this->taskConfig($task, 'routing_key');
         }
 
         if (is_object($job) && method_exists($job, 'beforePush')) {
-            if (false === $job->beforePush($message, Arr::get($this->config, sprintf('tasks.%s', $task)))) {
+            if (false === $job->beforePush($message, $taskConfig)) {
                 return;
             }
         }
