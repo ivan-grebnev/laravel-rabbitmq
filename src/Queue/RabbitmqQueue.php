@@ -126,12 +126,18 @@ class RabbitmqQueue extends Queue implements QueueContract
     {
         [$exchange, $queue] = $this->initTask($task, true, $map);
 
-        $routingKey = $this->taskConfig($task, 'routing_key');
+        if (is_object($job) && method_exists($job, 'routingKey')) {
+            $routingKey = $job->routingKey();
+        } else {
+            $routingKey = $this->taskConfig($task, 'routing_key');
+        }
+
         if (is_object($job) && method_exists($job, 'beforePush')) {
-            if (false === $job->beforePush($message, $exchange, $queue, $routingKey)) {
+            if (false === $job->beforePush($message, Arr::get($this->config, sprintf('tasks.%s', $task)))) {
                 return;
             }
         }
+
         $this->channel->basic_publish(
             $message,
             $queue ? '' : $exchange,
