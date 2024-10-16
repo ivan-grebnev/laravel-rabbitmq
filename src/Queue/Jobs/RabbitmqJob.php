@@ -12,7 +12,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 class RabbitmqJob extends Job implements JobContract
 {
     protected RabbitmqQueue $rabbitmq;
-    private AMQPMessage $message;
+    protected AMQPMessage $message;
 
     public function __construct(
         Container $container,
