@@ -16,7 +16,7 @@
   "require": {
     "php": "^7.4 || ^8.0",
     "ext-json": "*",
-    "illuminate/queue": "^8.64 || ^9.0",
+    "illuminate/queue": "^8.64 || ^9.0 || ^10.0 || ^11.0",
     "php-amqplib/php-amqplib": "^3.0"
   },
   "autoload": {
